@@ -1,3 +1,16 @@
 node_modules
 .env
 package-lock.json
+
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Lambda build artifact
+lambda.zip
+
+# Local Lambda invocation output
+response.json
