@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+
+  TodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: todo.handler
+      Runtime: nodejs22.x
+      Timeout: 10
+      MemorySize: 256
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TodosTable
+
+      Events:
+        TodoApi:
+          Type: Api
+          Properties:
+            Path: /todos
+            Method: ANY
+
+  TodosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Todos
+      BillingMode: PAY_PER_REQUEST
+
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
