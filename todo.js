@@ -1,11 +1,25 @@
-const todos = [];
+const {
+    getTodos,
+    createTodo,
+    getTodoById,
+    updateTodo,
+    deleteTodo
+} = require("./src/todoRepository");
 
 exports.handler = async (event) => {
+
     try {
+
         const method = event.httpMethod;
+        const id = event.pathParameters?.id
+            ? Number(event.pathParameters.id)
+            : null;
 
         // GET /todos
-        if (method === "GET" && !event.pathParameters?.id) {
+        if (method === "GET" && !id) {
+
+            const todos = await getTodos();
+
             return {
                 statusCode: 200,
                 body: JSON.stringify(todos)
@@ -13,10 +27,9 @@ exports.handler = async (event) => {
         }
 
         // GET /todos/:id
-        if (method === "GET" && event.pathParameters?.id) {
-            const id = Number(event.pathParameters.id);
+        if (method === "GET" && id) {
 
-            const todo = todos.find(todo => todo.id === id);
+            const todo = await getTodoById(id);
 
             if (!todo) {
                 return {
@@ -35,6 +48,7 @@ exports.handler = async (event) => {
 
         // POST /todos
         if (method === "POST") {
+
             const data = JSON.parse(event.body || "{}");
 
             if (!data.title) {
@@ -52,52 +66,42 @@ exports.handler = async (event) => {
                 completed: false
             };
 
-            todos.push(todo);
+            const createdTodo = await createTodo(todo);
 
             return {
                 statusCode: 201,
-                body: JSON.stringify(todo)
+                body: JSON.stringify(createdTodo)
             };
         }
 
         // PUT /todos/:id
-        if (method === "PUT" && event.pathParameters?.id) {
-            const id = Number(event.pathParameters.id);
+        if (method === "PUT" && id) {
 
-            const todo = todos.find(todo => todo.id === id);
+            const data = JSON.parse(event.body || "{}");
 
-            if (!todo) {
+            const updatedTodo = await updateTodo(id, data);
+
+            if (!updatedTodo) {
                 return {
                     statusCode: 404,
                     body: JSON.stringify({
                         message: "Todo not found"
                     })
                 };
-            }
-
-            const data = JSON.parse(event.body || "{}");
-
-            if (data.title !== undefined) {
-                todo.title = data.title;
-            }
-
-            if (data.completed !== undefined) {
-                todo.completed = data.completed;
             }
 
             return {
                 statusCode: 200,
-                body: JSON.stringify(todo)
+                body: JSON.stringify(updatedTodo)
             };
         }
 
         // DELETE /todos/:id
-        if (method === "DELETE" && event.pathParameters?.id) {
-            const id = Number(event.pathParameters.id);
+        if (method === "DELETE" && id) {
 
-            const index = todos.findIndex(todo => todo.id === id);
+            const deletedTodo = await deleteTodo(id);
 
-            if (index === -1) {
+            if (!deletedTodo) {
                 return {
                     statusCode: 404,
                     body: JSON.stringify({
@@ -105,8 +109,6 @@ exports.handler = async (event) => {
                     })
                 };
             }
-
-            const deletedTodo = todos.splice(index, 1)[0];
 
             return {
                 statusCode: 200,
@@ -122,6 +124,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
+
         console.error(error);
 
         return {
