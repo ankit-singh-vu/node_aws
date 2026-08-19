@@ -1,83 +1,100 @@
-const fs = require("fs/promises");
-const path = require("path");
+const {
+    DynamoDBClient
+} = require("@aws-sdk/client-dynamodb");
 
-const filePath = path.join(__dirname, "../data/todos.json");
+const {
+    DynamoDBDocumentClient,
+    PutCommand,
+    ScanCommand,
+    GetCommand,
+    UpdateCommand,
+    DeleteCommand
+} = require("@aws-sdk/lib-dynamodb");
 
-async function getTodos() {
-    const data = await fs.readFile(filePath, "utf-8");
+const client = new DynamoDBClient({
+    region: "ap-south-1"
+});
 
-    if (!data.trim()) {
-        return [];
-    }
+const dynamoDB = DynamoDBDocumentClient.from(client);
 
-    return JSON.parse(data);
-}
-
-async function saveTodos(todos) {
-    await fs.writeFile(
-        filePath,
-        JSON.stringify(todos, null, 2)
-    );
-}
+const TABLE_NAME = "Todos";
 
 async function createTodo(todo) {
-    const todos = await getTodos();
-
-    todos.push(todo);
-
-    await saveTodos(todos);
+    await dynamoDB.send(
+        new PutCommand({
+            TableName: TABLE_NAME,
+            Item: todo
+        })
+    );
 
     return todo;
 }
 
-async function getTodoById(id) {
-    const todos = await getTodos();
+async function getTodos() {
+    const result = await dynamoDB.send(
+        new ScanCommand({
+            TableName: TABLE_NAME
+        })
+    );
 
-    return todos.find(todo => todo.id === id);
+    return result.Items || [];
+}
+
+async function getTodoById(id) {
+    const result = await dynamoDB.send(
+        new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                id: id
+            }
+        })
+    );
+
+    return result.Item || null;
 }
 
 async function updateTodo(id, data) {
-    const todos = await getTodos();
+    const result = await dynamoDB.send(
+        new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                id: id
+            },
+            UpdateExpression: "SET #title = :title, #completed = :completed",
+            ExpressionAttributeNames: {
+                "#title": "title",
+                "#completed": "completed"
+            },
+            ExpressionAttributeValues: {
+                ":title": data.title,
+                ":completed": data.completed
+            },
+            ConditionExpression: "attribute_exists(id)",
+            ReturnValues: "ALL_NEW"
+        })
+    );
 
-    const index = todos.findIndex(todo => todo.id === id);
-
-    if (index === -1) {
-        return null;
-    }
-
-    todos[index] = {
-        ...todos[index],
-        ...data
-    };
-
-    await saveTodos(todos);
-
-    return todos[index];
+    return result.Attributes || null;
 }
 
 async function deleteTodo(id) {
-    const todos = await getTodos();
+    const result = await dynamoDB.send(
+        new DeleteCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                id: id
+            },
+            ReturnValues: "ALL_OLD"
+        })
+    );
 
-    const index = todos.findIndex(todo => todo.id === id);
-
-    if (index === -1) {
-        return null;
-    }
-
-    const deletedTodo = todos[index];
-
-    todos.splice(index, 1);
-
-    await saveTodos(todos);
-
-    return deletedTodo;
+    return result.Attributes || null;
 }
 
 module.exports = {
-    getTodos,
     createTodo,
+    getTodos,
     getTodoById,
     updateTodo,
     deleteTodo
 };
-

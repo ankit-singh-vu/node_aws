@@ -12,7 +12,7 @@ exports.handler = async (event) => {
 
         const method = event.httpMethod;
         const id = event.pathParameters?.id
-            ? Number(event.pathParameters.id)
+            ? String(event.pathParameters.id)
             : null;
 
         // GET /todos
@@ -59,9 +59,8 @@ exports.handler = async (event) => {
                     })
                 };
             }
-
             const todo = {
-                id: Date.now(),
+                id: String(Date.now()),
                 title: data.title,
                 completed: false
             };
