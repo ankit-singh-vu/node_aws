@@ -16,15 +16,27 @@ provider "aws" {
   region = var.aws_region
 }
 
+resource "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
+
+  client_id_list = [
+    "sts.amazonaws.com"
+  ]
+
+  thumbprint_list = [
+    "ffffffffffffffffffffffffffffffffffffffff"
+  ]
+}
+
 data "archive_file" "lambda" {
   type        = "zip"
   source_dir  = "../"
   output_path = "../lambda.zip"
 
   excludes = [
-    ".git",
-    ".terraform",
     "terraform",
+    ".git",
+    ".github",
     "lambda.zip",
     "response.json",
     ".env"
