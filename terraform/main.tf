@@ -88,3 +88,70 @@ resource "aws_lambda_function" "todo" {
   timeout     = 10
   memory_size = 256
 }
+
+
+resource "aws_apigatewayv2_api" "todo_api" {
+  name          = "todo-api"
+  protocol_type = "HTTP"
+}
+
+resource "aws_apigatewayv2_integration" "todo_lambda" {
+  api_id                 = aws_apigatewayv2_api.todo_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.todo.invoke_arn
+  integration_method     = "POST"
+  payload_format_version = "1.0"
+}
+
+# resource "aws_apigatewayv2_route" "todo_route" {
+#   api_id    = aws_apigatewayv2_api.todo_api.id
+#   route_key = "$default"
+#   target    = "integrations/${aws_apigatewayv2_integration.todo_lambda.id}"
+# }
+resource "aws_apigatewayv2_route" "get_todos" {
+  api_id    = aws_apigatewayv2_api.todo_api.id
+  route_key = "GET /todos"
+  target    = "integrations/${aws_apigatewayv2_integration.todo_lambda.id}"
+}
+
+resource "aws_apigatewayv2_route" "create_todo" {
+  api_id    = aws_apigatewayv2_api.todo_api.id
+  route_key = "POST /todos"
+  target    = "integrations/${aws_apigatewayv2_integration.todo_lambda.id}"
+}
+
+resource "aws_apigatewayv2_route" "get_todo" {
+  api_id    = aws_apigatewayv2_api.todo_api.id
+  route_key = "GET /todos/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.todo_lambda.id}"
+}
+
+resource "aws_apigatewayv2_route" "update_todo" {
+  api_id    = aws_apigatewayv2_api.todo_api.id
+  route_key = "PUT /todos/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.todo_lambda.id}"
+}
+
+resource "aws_apigatewayv2_route" "delete_todo" {
+  api_id    = aws_apigatewayv2_api.todo_api.id
+  route_key = "DELETE /todos/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.todo_lambda.id}"
+}
+
+
+resource "aws_apigatewayv2_stage" "todo_stage" {
+  api_id      = aws_apigatewayv2_api.todo_api.id
+  name        = "$default"
+  auto_deploy = true
+}
+
+resource "aws_lambda_permission" "api_gateway" {
+  statement_id  = "AllowApiGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.todo.function_name
+  principal     = "apigateway.amazonaws.com"
+}
+
+output "todo_api_url" {
+  value = aws_apigatewayv2_stage.todo_stage.invoke_url
+}
