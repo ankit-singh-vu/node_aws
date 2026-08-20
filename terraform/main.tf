@@ -8,11 +8,11 @@ terraform {
 }
 
 provider "aws" {
-  region = "ap-south-1"
+  region = var.aws_region
 }
 
 resource "aws_dynamodb_table" "todos" {
-  name         = "Todos"
+  name         = var.dynamodb_table_name
   billing_mode = "PAY_PER_REQUEST"
 
   hash_key = "id"
@@ -24,7 +24,7 @@ resource "aws_dynamodb_table" "todos" {
 }
 
 resource "aws_iam_role" "lambda_role" {
-  name = "todo-lambda-role"
+  name = var.lambda_role_name
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -75,7 +75,7 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
 }
 
 resource "aws_lambda_function" "todo" {
-  function_name = "todo-function"
+  function_name = var.lambda_function_name
 
   filename         = "../lambda.zip"
   source_code_hash = filebase64sha256("../lambda.zip")
@@ -91,7 +91,7 @@ resource "aws_lambda_function" "todo" {
 
 
 resource "aws_apigatewayv2_api" "todo_api" {
-  name          = "todo-api"
+  name          = var.api_name
   protocol_type = "HTTP"
 }
 
@@ -103,11 +103,6 @@ resource "aws_apigatewayv2_integration" "todo_lambda" {
   payload_format_version = "1.0"
 }
 
-# resource "aws_apigatewayv2_route" "todo_route" {
-#   api_id    = aws_apigatewayv2_api.todo_api.id
-#   route_key = "$default"
-#   target    = "integrations/${aws_apigatewayv2_integration.todo_lambda.id}"
-# }
 resource "aws_apigatewayv2_route" "get_todos" {
   api_id    = aws_apigatewayv2_api.todo_api.id
   route_key = "GET /todos"
@@ -150,8 +145,4 @@ resource "aws_lambda_permission" "api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.todo.function_name
   principal     = "apigateway.amazonaws.com"
-}
-
-output "todo_api_url" {
-  value = aws_apigatewayv2_stage.todo_stage.invoke_url
 }

@@ -1,0 +1,5 @@
+aws_region           = "ap-south-1"
+dynamodb_table_name  = "Todos"
+lambda_function_name = "todo-function"
+lambda_role_name     = "todo-lambda-role"
+api_name             = "todo-api"
