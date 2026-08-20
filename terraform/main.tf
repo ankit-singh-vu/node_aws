@@ -4,11 +4,31 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.7"
+    }
   }
 }
 
 provider "aws" {
   region = var.aws_region
+}
+
+data "archive_file" "lambda" {
+  type        = "zip"
+  source_dir  = "../"
+  output_path = "../lambda.zip"
+
+  excludes = [
+    ".git",
+    ".terraform",
+    "terraform",
+    "lambda.zip",
+    "response.json",
+    ".env"
+  ]
 }
 
 resource "aws_dynamodb_table" "todos" {
@@ -77,8 +97,8 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
 resource "aws_lambda_function" "todo" {
   function_name = var.lambda_function_name
 
-  filename         = "../lambda.zip"
-  source_code_hash = filebase64sha256("../lambda.zip")
+  filename         = data.archive_file.lambda.output_path
+  source_code_hash = data.archive_file.lambda.output_base64sha256
 
   handler = "todo.handler"
   runtime = "nodejs22.x"
