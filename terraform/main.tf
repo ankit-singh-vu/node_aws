@@ -24,7 +24,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   ]
 
   thumbprint_list = [
-    "ffffffffffffffffffffffffffffffffffffffff"
+    "ab9d0263244dd0326eb67015705a667e79cfe998"
   ]
 }
 
